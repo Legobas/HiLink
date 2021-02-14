@@ -4,26 +4,31 @@
 #AutoIt3Wrapper_Compression=4
 #AutoIt3Wrapper_Res_Comment=HiLink
 #AutoIt3Wrapper_Res_Description=Huawei E3372h-153 HiLink Client
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.10
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.12
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_AU3Check_Parameters=-d
 #AutoIt3Wrapper_Run_Tidy=y
+#AutoIt3Wrapper_Run_Au3Stripper=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
 #include <AutoItConstants.au3>
 #include <StringConstants.au3>
 #include <String.au3>
+#include "HTTP.au3"
 
 Opt("TrayMenuMode", 1)
 
+Global $sProgramName = StringReplace(@ScriptName, ".exe", "")
 Global $sCurlPath = ""
-Global $sHost = "http://192.168.8.1"
+Global $sHost = "192.168.8.1"
 Global $bDebug = False
 Local $sCommand = ""
 Local $sApi = ""
 Local $sXml = ""
 Local $iMsgCount = 0
+
+;Local $CmdLine[2] = [1, 'smslist']
 
 If $CmdLine[0] < 1 Then
 	usage()
@@ -158,59 +163,50 @@ Func SmsDelete($iMax)
 		ConsoleWrite("SMS Msg indexes to delete: " & $sIndexes & @CRLF)
 	EndIf
 
-	;	runCurl("api/sms/delete-sms", "<request>" & $sIndexes & "</request>")
+	runCurl("api/sms/delete-sms", "<request>" & $sIndexes & "</request>")
 EndFunc   ;==>SmsDelete
 
-Func getSession()
-	Local $sCurlParameters = '-s "http://192.168.8.1/api/webserver/SesTokInfo"'
-	Local $iPID = Run(@ComSpec & ' /C curl.exe ' & $sCurlParameters, "", 0, $STDOUT_CHILD)
-	ProcessWaitClose($iPID)
-	Local $sOutput = StdoutRead($iPID)
-	; ConsoleWrite("Session: " & $sOutput & @CRLF)
+Func getSessionHeaders()
+	Local $url = "/api/webserver/SesTokInfo"
+	HttpConnect($sHost)
+	Dim $aHeaders[1] = [""]
+	HttpGet($sHost, $url, $aHeaders)
+	Local $sResponse = HttpRead()
+	HttpClose()
 
-	Local $aCookie = _StringBetween($sOutput, "<SesInfo>", "</SesInfo>")
-	Local $aToken = _StringBetween($sOutput, "<TokInfo>", "</TokInfo>")
+	ConsoleWrite("Session: " & $sResponse & @CRLF)
+	Local $aCookie = _StringBetween($sResponse, "<SesInfo>", "</SesInfo>")
+	Local $aToken = _StringBetween($sResponse, "<TokInfo>", "</TokInfo>")
 
-	Local $sCurlSession = '-H "Cookie: ' & $aCookie[0] & '" '
-	$sCurlSession &= '-H "__RequestVerificationToken: ' & $aToken[0] & '" '
-	; ConsoleWrite("Session: " & $sCurlSession & @CRLF)
-	Return $sCurlSession
-EndFunc   ;==>getSession
+	Dim $aSession[2]
+	$aSession[0] = "Cookie: " & $aCookie[0]
+	$aSession[1] = "__RequestVerificationToken: " & $aToken[0]
+	Return $aSession
+EndFunc   ;==>getSessionHeaders
 
 Func runCurl($sApi, $sRequestXml = "")
-	Local $sUrl = $sHost
-	$sUrl &= "/" & $sApi
-
-	Local $sCurlCommand = "-s " ; Silent
-	$sCurlCommand &= "-X " ; HTTP GET/POST
+	Local $aHeaders = getSessionHeaders()
+	HttpConnect($sHost)
 	If StringLen($sRequestXml) = 0 Then
-		$sCurlCommand &= "GET "
+		HttpGet($sHost, $sApi, $aHeaders)
 	Else
-		$sCurlCommand &= "POST "
-	EndIf
-	$sCurlCommand &= '"' & $sUrl & '" '
-	$sCurlCommand &= getSession()
-	If StringLen($sRequestXml) > 0 Then
-		$sCurlCommand &= "-d " ; Data
-		$sCurlCommand &= '"' & $sRequestXml & '"'
 		If $bDebug Then
 			ConsoleWrite("# Request:" & @CRLF)
 			ConsoleWrite($sRequestXml & @CRLF & @CRLF)
 		EndIf
+		HttpPost($sHost, $sApi, $aHeaders, $sRequestXml)
 	EndIf
-	; ConsoleWrite("CurlCommand:" & @CRLF & $sCurlCommand & @CRLF & @CRLF)
+	Local $sResponse = HttpRead()
+	HttpClose()
 
-	Local $iPID = Run(@ComSpec & ' /C curl.exe ' & $sCurlCommand, "", 0, $STDOUT_CHILD)
-	ProcessWaitClose($iPID)
-	Local $response = StdoutRead($iPID)
 	Local $sTitle = _StringTitleCase(StringReplace(StringMid($sApi, StringInStr($sApi, "/") + 1), "/", " "))
 	If $bDebug Then
 		ConsoleWrite("# Response:" & @CRLF)
-		ConsoleWrite($response & @CRLF & @CRLF)
+		ConsoleWrite($sResponse & @CRLF & @CRLF)
 	EndIf
 	ConsoleWrite("# " & $sTitle & ":" & @CRLF)
-	ParseXml($response)
-	Return $response
+	ParseXml($sResponse)
+	Return $sResponse
 EndFunc   ;==>runCurl
 
 Func ParseXml($sXml)
@@ -238,9 +234,8 @@ Func usage()
 	If @AutoItX64 Then
 		$build = " x64"
 	EndIf
-	Local $sName = StringReplace(@ScriptName, ".exe", "")
 	Local $sVersion = StringLeft(FileGetVersion(@ScriptDir & "\" & @ScriptName, "FileVersion"), 5)
-	ConsoleWrite($sName & $build & " " & $sVersion & @CRLF)
+	ConsoleWrite($sProgramName & $build & " " & $sVersion & @CRLF)
 	ConsoleWrite("Usage: " & @CRLF)
 	ConsoleWrite("command (without other parameters)" & @CRLF)
 	ConsoleWrite("-c command (-c info)" & @CRLF)
@@ -251,9 +246,9 @@ Func usage()
 	ConsoleWrite("-x request XML (-x ""<request>***</request>"")" & @CRLF)
 	ConsoleWrite(@CRLF)
 	ConsoleWrite("Examples:" & @CRLF)
-	ConsoleWrite($sName & " info" & @CRLF)
-	ConsoleWrite($sName & " -c info" & @CRLF)
-	ConsoleWrite($sName & " -a api/device/information" & @CRLF)
-	ConsoleWrite($sName & ' -a api/monitoring/clear-traffic -x "<request><ClearTraffic>1</ClearTraffic></request>"' & @CRLF)
+	ConsoleWrite($sProgramName & " info" & @CRLF)
+	ConsoleWrite($sProgramName & " -c info" & @CRLF)
+	ConsoleWrite($sProgramName & " -a api/device/information" & @CRLF)
+	ConsoleWrite($sProgramName & ' -a api/monitoring/clear-traffic -x "<request><ClearTraffic>1</ClearTraffic></request>"' & @CRLF)
 	ConsoleWrite(@CRLF)
 EndFunc   ;==>usage

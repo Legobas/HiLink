@@ -1,1 +1,3 @@
 *.exe
+BackUp/*
+HiLink_stripped.au3
