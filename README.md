@@ -37,6 +37,12 @@ This command will remove all the SMS messages from the SMS Inbox: `HiLink.exe em
 The Huawei E3372 disconnects frequently from the LTE network. This is caused by the Auto Disconnect Interval, which has a maximum 120 minutes. This little hack sets the Interval to 24 hours, for the explanation see: 
 [hacking-huawei-e3372-hilink](https://blog.idorobots.org/entries/hacking-huawei-e3372-hilink..html).
 
+## Additional Web API tricks
+
+You can create your own commands following the [Huawei Web API](https://blog.hqcodeshop.fi/archives/259-Huawei-E5186-AJAX-API.html).
+
+For example `Hilink.exe -a /config/global/languagelist.xml` shows the available languages.
+
 ## Acknowledgements
 
 * Thanks to [Kajetan Rzepecki 'Idorobots'](https://github.com/Idorobots) for research and the reconnect hack
