@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_Compression=4
 #AutoIt3Wrapper_Res_Comment=HiLink
 #AutoIt3Wrapper_Res_Description=Huawei E3372h-153 HiLink Client
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.27
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.50
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_AU3Check_Parameters=-d
@@ -22,7 +22,7 @@ Opt("TrayMenuMode", 1)
 Global $sProgramName = StringReplace(@ScriptName, ".exe", "")
 Global $sCurlPath = ""
 Global $sHost = "192.168.8.1"
-Global $bDebug = False
+Global $iDebugLevel = 0
 Local $sCommand = ""
 Local $sApi = ""
 Local $sXml = ""
@@ -38,11 +38,27 @@ Else
 		; ConsoleWrite($CmdLine[$n] & @CRLF)
 		Switch StringLeft($CmdLine[$n], 2)
 			Case "-c"
-				$sCommand = $CmdLine[$n + 1]
+				If $CmdLine[0] > $n Then
+					$sCommand = $CmdLine[$n + 1]
+				EndIf
 			Case "-h"
-				$sHost = $CmdLine[$n + 1]
+				If $CmdLine[0] > $n Then
+					$sHost = $CmdLine[$n + 1]
+				EndIf
+			Case "-a"
+				If $CmdLine[0] > $n Then
+					$sApi = $CmdLine[$n + 1]
+				EndIf
+			Case "-x"
+				If $CmdLine[0] > $n Then
+					$sXml = $CmdLine[$n + 1]
+				EndIf
 			Case "-d"
-				$bDebug = True
+				If $CmdLine[0] > $n And StringIsInt($CmdLine[$n + 1]) Then
+					$iDebugLevel = $CmdLine[$n + 1]
+				Else
+					$iDebugLevel = 1
+				EndIf
 			Case Else
 				If $CmdLine[0] = 1 Then $sCommand = $CmdLine[$n]
 		EndSwitch
@@ -52,9 +68,6 @@ If @error Then
 	usage()
 	Exit (1)
 EndIf
-
-;Check curl on path
-;https://curl.se/download.html
 
 Switch $sCommand
 	Case 'info'
@@ -107,12 +120,9 @@ If StringLen($sApi) == 0 Then
 	Exit (1)
 EndIf
 
-If $bDebug Then
+If $iDebugLevel == 1 Then
 	ConsoleWrite("Host: " & $sHost & @CRLF)
-	ConsoleWrite("API: " & $sApi & @CRLF)
-	If StringLen($sCurlPath) > 0 Then
-		ConsoleWrite("Path to cUrl.exe: " & $sCurlPath & @CRLF)
-	EndIf
+	ConsoleWrite("Uri: " & $sApi & @CRLF)
 	ConsoleWrite(@CRLF)
 EndIf
 
@@ -135,7 +145,7 @@ Func SmsCount()
 	Local $sSmsXml = runCurl("api/sms/sms-count")
 	Local $aSmsCount = _StringBetween($sSmsXml, "<LocalInbox>", "</LocalInbox>")
 	If Not @error Then
-		If $bDebug Then
+		If $iDebugLevel > 1 Then
 			ConsoleWrite("SMS Inbox messages: " & $aSmsCount[0] & @CRLF)
 		EndIf
 		$iSmsCount = Int($aSmsCount[0])
@@ -159,7 +169,7 @@ Func SmsDelete($iMax)
 			$sIndexes &= "<Index>" & $aIndex[0] & "</Index>"
 		EndIf
 	Next
-	If $bDebug Then
+	If $iDebugLevel > 1 Then
 		ConsoleWrite("SMS Msg indexes to delete: " & $sIndexes & @CRLF)
 	EndIf
 
@@ -167,6 +177,7 @@ Func SmsDelete($iMax)
 EndFunc   ;==>SmsDelete
 
 Func getSessionHeaders()
+	Dim $aSession[0]
 	Local $url = "/api/webserver/SesTokInfo"
 	HttpConnect($sHost)
 	Dim $aHeaders[1] = [""]
@@ -176,11 +187,14 @@ Func getSessionHeaders()
 
 	;ConsoleWrite("Session: " & $sResponse & @CRLF)
 	Local $aCookie = _StringBetween($sResponse, "<SesInfo>", "</SesInfo>")
-	Local $aToken = _StringBetween($sResponse, "<TokInfo>", "</TokInfo>")
-
-	Dim $aSession[2]
-	$aSession[0] = "Cookie: " & $aCookie[0]
-	$aSession[1] = "__RequestVerificationToken: " & $aToken[0]
+	If Not @error Then
+		Local $aToken = _StringBetween($sResponse, "<TokInfo>", "</TokInfo>")
+		If Not @error Then
+			ReDim $aSession[2]
+			$aSession[0] = "Cookie: " & $aCookie[0]
+			$aSession[1] = "__RequestVerificationToken: " & $aToken[0]
+		EndIf
+	EndIf
 	Return $aSession
 EndFunc   ;==>getSessionHeaders
 
@@ -190,7 +204,7 @@ Func runCurl($sApi, $sRequestXml = "")
 	If StringLen($sRequestXml) = 0 Then
 		HttpGet($sHost, $sApi, $aHeaders)
 	Else
-		If $bDebug Then
+		If $iDebugLevel == 1 Then
 			ConsoleWrite("# Request:" & @CRLF)
 			ConsoleWrite($sRequestXml & @CRLF & @CRLF)
 		EndIf
@@ -200,12 +214,16 @@ Func runCurl($sApi, $sRequestXml = "")
 	HttpClose()
 
 	Local $sTitle = _StringTitleCase(StringReplace(StringMid($sApi, StringInStr($sApi, "/") + 1), "/", " "))
-	If $bDebug Then
+	If $iDebugLevel == 1 Then
 		ConsoleWrite("# Response:" & @CRLF)
 		ConsoleWrite($sResponse & @CRLF & @CRLF)
 	EndIf
-	ConsoleWrite("# " & $sTitle & ":" & @CRLF)
-	ParseXml($sResponse)
+	If $iDebugLevel == 0 Then
+		If UBound($aHeaders) > 1 Then
+			ConsoleWrite("# " & $sTitle & ":" & @CRLF)
+		EndIf
+		ParseXml($sResponse)
+	EndIf
 	Return $sResponse
 EndFunc   ;==>runCurl
 
@@ -219,6 +237,7 @@ Func ParseXml($sXml)
 		If StringLeft($sTag, 1) == "/" Then
 			If StringInStr($sItem, StringMid($sTag, 2)) > 0 Then
 				$sItem = StringReplace($sItem, ">", ": ")
+				If StringRight($sItem, 2) == ": " Then $sItem &= "-"
 				ConsoleWrite($sItem & @CRLF)
 			EndIf
 			$sItem = ""
@@ -240,15 +259,16 @@ Func usage()
 	ConsoleWrite("command (without other parameters)" & @CRLF)
 	ConsoleWrite("-c command (-c info)" & @CRLF)
 	ConsoleWrite("   commands: info, status, net, sms, smscount, smslist, stats, monthstats, resetstats, reboot, con, hack, emptyinbox" & @CRLF)
-	ConsoleWrite("-h host (default " & $sHost & ")" & @CRLF)
-	ConsoleWrite("-d debug (show XML messages)" & @CRLF)
+	ConsoleWrite("-h host, IP Address (default " & $sHost & ")" & @CRLF)
+	ConsoleWrite("-d debuglevel (none=1, 0-2)" & @CRLF)
 	ConsoleWrite("-a api path (-a api/**/**)" & @CRLF)
 	ConsoleWrite("-x request XML (-x ""<request>***</request>"")" & @CRLF)
 	ConsoleWrite(@CRLF)
 	ConsoleWrite("Examples:" & @CRLF)
 	ConsoleWrite($sProgramName & " info" & @CRLF)
 	ConsoleWrite($sProgramName & " -c info" & @CRLF)
-	ConsoleWrite($sProgramName & " -a api/device/information" & @CRLF)
+	ConsoleWrite($sProgramName & " -d -c status" & @CRLF)
+	ConsoleWrite($sProgramName & " -d 2 -a api/device/information" & @CRLF)
 	ConsoleWrite($sProgramName & ' -a api/monitoring/clear-traffic -x "<request><ClearTraffic>1</ClearTraffic></request>"' & @CRLF)
 	ConsoleWrite(@CRLF)
 EndFunc   ;==>usage

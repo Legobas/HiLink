@@ -9,12 +9,8 @@ TCPStartup()
 
 Global $HttpSocket = -1
 
-Func HttpConnect($host)
-	Local $ip = $host
-	If Not StringIsInt(StringReplace($ip, ".", "")) Then
-		TCPNameToIP($host)
-	EndIf
-	$HttpSocket = TCPConnect($ip, 80)
+Func HttpConnect($sIpAddress)
+	$HttpSocket = TCPConnect($sIpAddress, 80)
 
 	If ($HttpSocket == -1) Then
 		ConsoleWrite("HTTP Connect Error" & @CRLF)
@@ -27,46 +23,53 @@ Func HttpClose()
 	$HttpSocket = -1
 EndFunc   ;==>HttpClose
 
-Func HttpGet($host, $url, ByRef $aHeaders)
-	Dim $command
+Func HttpGet($sIpAddress, $sUri, ByRef $aHeaders)
+	Dim $sRequest
 
-	If StringLeft($url, 1) <> "/" Then $url = "/" & $url
-	$command = "GET " & $url & " HTTP/1.1" & @CRLF
-	$command &= "Host: " & $host & @CRLF
+	If StringLeft($sUri, 1) <> "/" Then $sUri = "/" & $sUri
+	$sRequest = "GET " & $sUri & " HTTP/1.1" & @CRLF
+	$sRequest &= "Host: " & $sIpAddress & @CRLF
 	If UBound($aHeaders) > 1 Then
-		$command &= $aHeaders[0] & @CRLF
-		$command &= $aHeaders[1] & @CRLF
+		$sRequest &= $aHeaders[0] & @CRLF
+		$sRequest &= $aHeaders[1] & @CRLF
 	EndIf
-	$command &= "Connection: close" & @CRLF
-	$command &= "" & @CRLF
-	;ConsoleWrite($command)
+	$sRequest &= "Connection: close" & @CRLF
+	$sRequest &= "" & @CRLF
+	If $iDebugLevel > 1 Then
+		ConsoleWrite("# HTTP Request:" & @CRLF)
+		ConsoleWrite($sRequest)
+	EndIf
 
-	Local $bytes = TCPSend($HttpSocket, $command)
+	Local $bytes = TCPSend($HttpSocket, $sRequest)
 	If $bytes == 0 Then
 		ConsoleWrite("HTTP GET Error" & @CRLF)
 		Exit
 	EndIf
 EndFunc   ;==>HttpGet
 
-Func HttpPost($host, $url, ByRef $aHeaders, $data = "")
-	Dim $command
-	Dim $datasize = StringLen($data)
+Func HttpPost($sIpAddress, $sUri, ByRef $aHeaders, $sXml)
+	Dim $sRequest
+	Dim $datasize = StringLen($sXml)
 	
-	If StringLeft($url, 1) <> "/" Then $url = "/" & $url
-	$command = "POST " & $url & " HTTP/1.1" & @CRLF
-	$command &= "Host: " & $host & @CRLF
+	If StringLeft($sUri, 1) <> "/" Then $sUri = "/" & $sUri
+	$sRequest = "POST " & $sUri & " HTTP/1.1" & @CRLF
+	$sRequest &= "Host: " & $sIpAddress & @CRLF
 	If UBound($aHeaders) > 1 Then
-		$command &= $aHeaders[0] & @CRLF
-		$command &= $aHeaders[1] & @CRLF
+		$sRequest &= $aHeaders[0] & @CRLF
+		$sRequest &= $aHeaders[1] & @CRLF
 	EndIf
-	$command &= "Connection: close" & @CRLF
-	$command &= "Content-Type: application/x-www-form-urlencoded" & @CRLF
-	$command &= "Content-Length: " & $datasize & @CRLF
-	$command &= "" & @CRLF
-	$command &= $data & @CRLF
-	;ConsoleWrite($command)
+	$sRequest &= "Connection: close" & @CRLF
+	$sRequest &= "Content-Type: application/x-www-form-urlencoded" & @CRLF
+	$sRequest &= "Content-Length: " & $datasize & @CRLF
+	$sRequest &= "" & @CRLF
+	$sRequest &= $sXml & @CRLF
+	If $iDebugLevel > 1 Then
+		ConsoleWrite("# HTTP Request:" & @CRLF)
+		ConsoleWrite($sRequest)
+		ConsoleWrite(@CRLF)
+	EndIf
 	
-	Local $bytes = TCPSend($HttpSocket, $command)
+	Local $bytes = TCPSend($HttpSocket, $sRequest)
 	If $bytes == 0 Then
 		ConsoleWrite("HTTP POST Error" & @CRLF)
 		Exit
@@ -87,7 +90,8 @@ Func HttpRead()
 		If StringLen($bytes) == 0 Then ExitLoop
 		Sleep(100)
 	WEnd
-	If $bDebug Then
+	If $iDebugLevel > 1 Then
+		ConsoleWrite("# HTTP Response:" & @CRLF)
 		ConsoleWrite($data & @CRLF)
 	EndIf
 
