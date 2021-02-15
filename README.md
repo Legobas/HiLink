@@ -15,5 +15,6 @@ This command will remove all the SMS messages from the SMS Inbox: `HiLink.exe em
 
 ## Acknowledgements
 
-* Thanks to [Kajetan Rzepecki 'Idorobots'](https://github.com/Idorobots) for research and hack
+* Thanks to [Kajetan Rzepecki 'Idorobots'](https://github.com/Idorobots) for research and the reconnect hack
 * Thanks to [AutoIt](https://www.autoitscript.com)
+* Thanks to Logan Hampton and Damien Smith for the [Visual Studio Code AutoIt Extension](https://github.com/loganch/AutoIt-VSCode)
