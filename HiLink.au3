@@ -1,17 +1,18 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Huawei.ico
-#AutoIt3Wrapper_Outfile=HiLink.exe
 #AutoIt3Wrapper_Change2CUI=y
 #AutoIt3Wrapper_Compression=4
 #AutoIt3Wrapper_Compile_Both=y
 #AutoIt3Wrapper_Res_Comment=HiLink
 #AutoIt3Wrapper_Res_Description=Huawei E3372h-153 HiLink Client
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.55
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.60
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_AU3Check_Parameters=-d
 #AutoIt3Wrapper_Run_Tidy=y
 #AutoIt3Wrapper_Run_Au3Stripper=y
+#AutoIt3Wrapper_Run_After=rename "%out%" "HiLink_win32.exe"
+#AutoIt3Wrapper_Run_After=rename "%outx64%" "HiLink.exe"
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
 #include <AutoItConstants.au3>
