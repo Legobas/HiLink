@@ -3,13 +3,14 @@
 #AutoIt3Wrapper_Run_Tidy=y
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
+AutoItSetOption("TCPTimeout", 1000)
+
 TCPStartup()
 
 Global $HttpSocket = -1
-Global $HttpRecvTimeout = 5000
 
 Func HttpConnect($host)
-	Dim $ip = $host
+	Local $ip = $host
 	If Not StringIsInt(StringReplace($ip, ".", "")) Then
 		TCPNameToIP($host)
 	EndIf
@@ -23,6 +24,7 @@ EndFunc   ;==>HttpConnect
 
 Func HttpClose()
 	TCPCloseSocket($HttpSocket)
+	$HttpSocket = -1
 EndFunc   ;==>HttpClose
 
 Func HttpGet($host, $url, ByRef $aHeaders)
@@ -72,30 +74,28 @@ Func HttpPost($host, $url, ByRef $aHeaders, $data = "")
 EndFunc   ;==>HttpPost
 
 Func HttpRead()
-	Local $sHttpMessageSize = 5000
-	Dim $headers[1][2] ; An Array of the headers found
-	Dim $numheaders = 0 ; The number of headers found
-	Dim $body = "" ; The body of the message
-	Dim $HTTPVersion ; The HTTP version of the server (almost always 1.1)
-	Dim $HTTPResponseCode ; The HTTP response code like 200, or 404
-	Dim $HTTPResponseReason ; The human-readable response reason, like "OK" or "Not Found"
-	Dim $bytesreceived = 0 ; The total number of bytes received
-	Dim $data = "" ; The entire raw message gets put in here.
-	Dim $chunked = 0 ; Set to 1 if we get the "Transfer-Encoding: chunked" header.
-	Dim $chunksize = 0 ; The size of the current chunk we are processing.
-	Dim $chunkprocessed = 0 ; The amount of data we have processed on the current chunk.
-	Dim $contentlength ; The size of the body, if NOT using chunked transfer mode.
+	Local $body = ""
+	Local $data = ""
 
 	While 1
-		Local $bytes = TCPRecv($HttpSocket, $sHttpMessageSize)
+		Local $bytes = TCPRecv($HttpSocket, 500)
+		If @error Then
+			ConsoleWrite("HTTP Error:" & @error)
+			Exit
+		EndIf
 		$data &= $bytes
-		If StringLen($bytes) == 0 Or StringLen($bytes < $sHttpMessageSize) Then ExitLoop
+		If StringLen($bytes) == 0 Then ExitLoop
 		Sleep(100)
 	WEnd
-	;ConsoleWrite($data & @CRLF)
+	ConsoleWrite("data: " & @CRLF & $data & @CRLF)
 
 	$body = StringMid($data, StringInStr($data, @CRLF & @CRLF) + 2)
 	;ConsoleWrite(@CRLF & "[" & $body & "]" & @CRLF & @CRLF)
+
+	If StringLen(StringStripWS($body, $STR_STRIPALL)) = 0 Then
+		ConsoleWrite("Error: No body found")
+		Exit
+	EndIf
 	
 	Return $body
 EndFunc   ;==>HttpRead

@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_Compression=4
 #AutoIt3Wrapper_Res_Comment=HiLink
 #AutoIt3Wrapper_Res_Description=Huawei E3372h-153 HiLink Client
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.12
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.24
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_AU3Check_Parameters=-d
@@ -28,7 +28,7 @@ Local $sApi = ""
 Local $sXml = ""
 Local $iMsgCount = 0
 
-;Local $CmdLine[2] = [1, 'smslist']
+;Local $CmdLine[2] = [1, 'info']
 
 If $CmdLine[0] < 1 Then
 	usage()
