@@ -4,7 +4,7 @@
 #AutoIt3Wrapper_Compression=4
 #AutoIt3Wrapper_Res_Comment=HiLink
 #AutoIt3Wrapper_Res_Description=Huawei E3372h-153 HiLink Client
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.24
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.27
 #AutoIt3Wrapper_Res_Fileversion_AutoIncrement=y
 #AutoIt3Wrapper_Res_Language=1033
 #AutoIt3Wrapper_AU3Check_Parameters=-d
@@ -174,7 +174,7 @@ Func getSessionHeaders()
 	Local $sResponse = HttpRead()
 	HttpClose()
 
-	ConsoleWrite("Session: " & $sResponse & @CRLF)
+	;ConsoleWrite("Session: " & $sResponse & @CRLF)
 	Local $aCookie = _StringBetween($sResponse, "<SesInfo>", "</SesInfo>")
 	Local $aToken = _StringBetween($sResponse, "<TokInfo>", "</TokInfo>")
 

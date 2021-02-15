@@ -39,7 +39,7 @@ Func HttpGet($host, $url, ByRef $aHeaders)
 	EndIf
 	$command &= "Connection: close" & @CRLF
 	$command &= "" & @CRLF
-	ConsoleWrite($command)
+	;ConsoleWrite($command)
 
 	Local $bytes = TCPSend($HttpSocket, $command)
 	If $bytes == 0 Then
@@ -64,7 +64,7 @@ Func HttpPost($host, $url, ByRef $aHeaders, $data = "")
 	$command &= "Content-Length: " & $datasize & @CRLF
 	$command &= "" & @CRLF
 	$command &= $data & @CRLF
-	ConsoleWrite($command)
+	;ConsoleWrite($command)
 	
 	Local $bytes = TCPSend($HttpSocket, $command)
 	If $bytes == 0 Then
@@ -87,7 +87,9 @@ Func HttpRead()
 		If StringLen($bytes) == 0 Then ExitLoop
 		Sleep(100)
 	WEnd
-	ConsoleWrite("data: " & @CRLF & $data & @CRLF)
+	If $bDebug Then
+		ConsoleWrite($data & @CRLF)
+	EndIf
 
 	$body = StringMid($data, StringInStr($data, @CRLF & @CRLF) + 2)
 	;ConsoleWrite(@CRLF & "[" & $body & "]" & @CRLF & @CRLF)
