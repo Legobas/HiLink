@@ -1,3 +1,5 @@
+[![AutoIt](https://img.shields.io/badge/made%20with-AutoIt-blue)](https://www.autoitscript.com)
+
 # HiLink
 Huawei HiLink 4G USB Modem Client
 
